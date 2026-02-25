@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: idp
+      POSTGRES_PASSWORD: idp
+      POSTGRES_DB: idp
+    ports:
+      - "5432:5432"
+    volumes:
+      - idp_pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    environment:
+      DB_URL: postgresql+psycopg2://idp:idp@db:5432/idp
+      JWT_SECRET: dev-secret
+      AWS_REGION: us-east-1
+      STEP_FUNCTION_ARN: ""
+      PROVISIONING_CALLBACK_TOKEN: dev-callback-token
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  idp_pgdata:

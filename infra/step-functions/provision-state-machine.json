@@ -1,0 +1,47 @@
+{
+  "Comment": "Tenant provisioning workflow (placeholder)",
+  "StartAt": "PlanAndApplyTerraform",
+  "States": {
+    "PlanAndApplyTerraform": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "REPLACE_ME",
+        "TaskDefinition": "REPLACE_ME",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": ["REPLACE_ME"],
+            "SecurityGroups": ["REPLACE_ME"],
+            "AssignPublicIp": "DISABLED"
+          }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "terraform",
+              "Command": ["./provision.sh"],
+              "Environment": [
+                {"Name": "TENANT_NAME", "Value.$": "$.tenant.name"},
+                {"Name": "NAMESPACE", "Value.$": "$.tenant.namespace"},
+                {"Name": "RDS_SCHEMA", "Value.$": "$.tenant.rds_schema"},
+                {"Name": "S3_BUCKET", "Value.$": "$.tenant.s3_bucket"},
+                {"Name": "SERVICE_ID", "Value.$": "$.service.id"},
+                {"Name": "PROVISIONING_API_URL", "Value": "REPLACE_ME"},
+                {"Name": "PROVISIONING_CALLBACK_TOKEN", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_db_host", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_db_name", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_db_admin_user", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_db_admin_password", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_tenant_db_password", "Value.$": "$.tenant.db_password"},
+                {"Name": "TF_VAR_kubeconfig_path", "Value": "REPLACE_ME"},
+                {"Name": "TF_VAR_aws_region", "Value": "REPLACE_ME"}
+              ]
+            }
+          ]
+        }
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IDP Portal</title>
+    <style>
+      :root {
+        --bg: #f4f1ec;
+        --ink: #1c1c1c;
+        --muted: #6b6b6b;
+        --accent: #2b4c7e;
+        --accent-2: #c66b3d;
+        --card: #ffffff;
+        --border: #ded9d2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: linear-gradient(140deg, #f7f3ef 0%, #ebe3db 40%, #f4f1ec 100%);
+      }
+      header {
+        padding: 24px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(6px);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0.5px;
+      }
+      header span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      main {
+        padding: 24px 32px 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: 320px 1fr;
+      }
+      @media (max-width: 960px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .tab-btn {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: white;
+        color: var(--ink);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .tab-btn.active {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      h2 {
+        margin-top: 0;
+        font-size: 18px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      input, select, textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 12px;
+        font-family: inherit;
+      }
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+      }
+      button {
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #ffffff;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+      button.ghost {
+        background: transparent;
+        color: var(--accent-2);
+        border: 1px solid var(--accent-2);
+      }
+      button + button {
+        margin-left: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .env-options {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .env-options label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--ink);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .service {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+      }
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .link {
+        color: var(--accent);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .service h3 {
+        margin: 0 0 6px 0;
+        font-size: 16px;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .actions {
+        margin-top: 10px;
+      }
+      .banner {
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+        background: rgba(43, 76, 126, 0.1);
+        color: var(--accent);
+        font-size: 13px;
+      }
+      .status {
+        font-size: 13px;
+        margin-top: 8px;
+        color: var(--accent-2);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>IDP Portal</h1>
+        <span>Thin API Gateway for Developer Self-Serve</span>
+      </div>
+      <div id="auth-info">Not signed in</div>
+    </header>
+    <main>
+      <section class="card" id="login-view" style="max-width: 420px; margin: 40px auto;">
+        <h2>Login</h2>
+        <label for="username">Username</label>
+        <input id="username" placeholder="admin | dev | viewer" />
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="admin | dev | viewer" />
+        <button id="login-btn">Sign in</button>
+        <div class="status" id="login-status"></div>
+      </section>
+
+      <section id="app-view" style="display: none;">
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-overview">Overview</button>
+          <button class="tab-btn" id="tab-services">Services</button>
+        </div>
+
+        <section class="card" id="overview-view">
+          <h2>Overview</h2>
+          <div class="banner">Welcome to the IDP Portal. Use the Services tab to manage and deploy.</div>
+          <div class="meta">This dashboard can later show metrics, recent deployments, and alerts.</div>
+        </section>
+
+        <section class="card" id="service-list-view" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div>
+              <h2 style="margin-bottom: 6px;">Services</h2>
+              <div class="banner">Manage and deploy services from this catalog.</div>
+            </div>
+            <button id="add-service-btn">Add service</button>
+          </div>
+          <div id="service-list"></div>
+        </section>
+
+        <section class="card" id="service-detail-view" style="margin-top: 20px; display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <h2 id="detail-title" style="margin: 0;">Service Details</h2>
+            <button id="back-to-services-btn" class="secondary">Back to services</button>
+          </div>
+          <div style="margin-top: 12px; overflow-x: auto;">
+            <table>
+              <tbody id="detail-table-body"></tbody>
+            </table>
+          </div>
+          <div class="actions" style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <button id="detail-provision-btn">Provision env</button>
+              <span class="meta" id="detail-provision-status"></span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <button id="detail-deploy-btn">Deploy</button>
+              <span class="meta" id="detail-deploy-status"></span>
+            </div>
+          </div>
+          <div style="margin-top: 16px;">
+            <button id="detail-delete-btn" class="ghost">Delete</button>
+          </div>
+          <div class="status" id="detail-status"></div>
+        </section>
+
+        <section class="card" id="service-form-view" style="margin-top: 20px; display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <h2 style="margin: 0;">Create / Update Service</h2>
+            <button id="back-to-list-btn" class="secondary">Back to services</button>
+          </div>
+          <div style="margin-top: 14px;">
+            <label for="service-name">Name</label>
+            <input id="service-name" />
+          </div>
+          <label for="service-tenant">Tenant</label>
+          <input id="service-tenant" placeholder="platform-team" />
+          <label for="service-repo">Repo URL</label>
+          <input id="service-repo" placeholder="https://git.example.com/org/repo" />
+          <label for="service-owner">Owner/Team</label>
+          <input id="service-owner" type="email" placeholder="owner@company.com" />
+          <div class="row">
+            <div>
+              <label for="service-runtime">Runtime</label>
+              <select id="service-runtime">
+                <option value="go">go</option>
+                <option value="python">python</option>
+              </select>
+            </div>
+            <div>
+              <label for="service-tier">Tier</label>
+              <select id="service-tier">
+                <option value="gold">gold</option>
+                <option value="silver">silver</option>
+                <option value="bronze">bronze</option>
+              </select>
+            </div>
+          </div>
+          <label>Environments</label>
+          <div class="env-options">
+            <label>
+              <input type="checkbox" class="env-checkbox" value="dev" />
+              dev
+            </label>
+            <label>
+              <input type="checkbox" class="env-checkbox" value="staging" />
+              staging
+            </label>
+            <label>
+              <input type="checkbox" class="env-checkbox" value="prod" />
+              prod
+            </label>
+          </div>
+          <button id="save-service-btn">Save</button>
+          <button id="clear-form-btn" class="secondary">Clear</button>
+          <div class="status" id="save-status"></div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const apiBase = "";
+      let token = "";
+      let currentRole = "";
+
+      const authInfo = document.getElementById("auth-info");
+      const loginStatus = document.getElementById("login-status");
+      const saveStatus = document.getElementById("save-status");
+      const loginView = document.getElementById("login-view");
+      const appView = document.getElementById("app-view");
+      const overviewView = document.getElementById("overview-view");
+      const listView = document.getElementById("service-list-view");
+      const detailView = document.getElementById("service-detail-view");
+      const formView = document.getElementById("service-form-view");
+      const tabOverview = document.getElementById("tab-overview");
+      const tabServices = document.getElementById("tab-services");
+      const detailTitle = document.getElementById("detail-title");
+      const detailTableBody = document.getElementById("detail-table-body");
+      const detailStatus = document.getElementById("detail-status");
+      const detailProvisionStatus = document.getElementById("detail-provision-status");
+      const detailDeployStatus = document.getElementById("detail-deploy-status");
+      let servicesCache = [];
+      let selectedService = null;
+
+      async function api(path, options = {}) {
+        const headers = options.headers || {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        headers["Content-Type"] = "application/json";
+        const res = await fetch(`${apiBase}${path}`, { ...options, headers });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        if (res.status === 204) return null;
+        return res.json();
+      }
+
+      async function login() {
+        loginStatus.textContent = "";
+        try {
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value.trim();
+          const data = await api("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ username, password })
+          });
+          token = data.token;
+          currentRole = data.role;
+          authInfo.textContent = `Signed in as ${username} (${currentRole})`;
+          loginStatus.textContent = "Login successful.";
+          loginView.style.display = "none";
+          appView.style.display = "block";
+          showOverview();
+          await loadServices();
+        } catch (err) {
+          loginStatus.textContent = `Login failed: ${err.message}`;
+        }
+      }
+
+      async function loadServices() {
+        const list = document.getElementById("service-list");
+        list.innerHTML = "";
+        try {
+          servicesCache = await api("/services");
+          if (!servicesCache.length) {
+            list.innerHTML = "<div class=\"meta\">No services yet.</div>";
+            return;
+          }
+          const table = document.createElement("table");
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Tenant</th>
+                <th>Owner</th>
+                <th>Runtime</th>
+                <th>Tier</th>
+                <th>Environments</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+          const tbody = table.querySelector("tbody");
+          servicesCache.forEach((service) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td><span class="link" data-id="${service.id}">${service.name}</span></td>
+              <td>${service.tenant || "-"}</td>
+              <td>${service.owner_team}</td>
+              <td>${service.runtime}</td>
+              <td>${service.tier}</td>
+              <td>${service.environments.join(", ") || "none"}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          list.appendChild(table);
+          list.querySelectorAll(".link").forEach((el) => {
+            el.addEventListener("click", () => {
+              const id = Number(el.getAttribute("data-id"));
+              const svc = servicesCache.find((s) => s.id === id);
+              if (svc) showDetailView(svc);
+            });
+          });
+        } catch (err) {
+          list.innerHTML = `<div class=\"status\">Failed to load: ${err.message}</div>`;
+        }
+      }
+
+      async function handleAction(service, action, statusEl) {
+        statusEl.textContent = "";
+        try {
+          if (action === "delete") {
+            await api(`/services/${service.id}`, { method: "DELETE" });
+            statusEl.textContent = "Deleted";
+            await loadServices();
+            showServices();
+            return;
+          }
+          if (action === "status") {
+            const data = await api(`/services/${service.id}/actions/status`);
+            statusEl.textContent = data.detail;
+            return;
+          }
+          const endpoint = action === "provision" ? "provision" : "deploy";
+          const data = await api(`/services/${service.id}/actions/${endpoint}`, { method: "POST" });
+          statusEl.textContent = data.detail;
+        } catch (err) {
+          statusEl.textContent = `Action failed: ${err.message}`;
+        }
+      }
+
+      async function saveService() {
+        saveStatus.textContent = "";
+        try {
+          const envs = Array.from(document.querySelectorAll(".env-checkbox:checked")).map(
+            (el) => el.value
+          );
+          const payload = {
+            name: document.getElementById("service-name").value.trim(),
+            tenant: document.getElementById("service-tenant").value.trim(),
+            repo_url: document.getElementById("service-repo").value.trim(),
+            owner_team: document.getElementById("service-owner").value.trim(),
+            runtime: document.getElementById("service-runtime").value,
+            tier: document.getElementById("service-tier").value.trim(),
+            environments: envs
+          };
+          await api("/services", { method: "POST", body: JSON.stringify(payload) });
+          saveStatus.textContent = "Service created.";
+          await loadServices();
+          showServices();
+        } catch (err) {
+          saveStatus.textContent = `Save failed: ${err.message}`;
+        }
+      }
+
+      function clearForm() {
+        document.getElementById("service-name").value = "";
+        document.getElementById("service-tenant").value = "";
+        document.getElementById("service-repo").value = "";
+        document.getElementById("service-owner").value = "";
+        document.getElementById("service-tier").value = "";
+        document.querySelectorAll(".env-checkbox").forEach((el) => {
+          el.checked = false;
+        });
+      }
+
+      function showListView() {
+        listView.style.display = "block";
+        detailView.style.display = "none";
+        formView.style.display = "none";
+      }
+
+      function showFormView() {
+        listView.style.display = "none";
+        detailView.style.display = "none";
+        formView.style.display = "block";
+      }
+
+      function showOverview() {
+        tabOverview.classList.add("active");
+        tabServices.classList.remove("active");
+        overviewView.style.display = "block";
+        listView.style.display = "none";
+        detailView.style.display = "none";
+        formView.style.display = "none";
+      }
+
+      function showServices() {
+        tabOverview.classList.remove("active");
+        tabServices.classList.add("active");
+        overviewView.style.display = "none";
+        showListView();
+      }
+
+      function showDetailView(service) {
+        selectedService = service;
+        tabOverview.classList.remove("active");
+        tabServices.classList.add("active");
+        overviewView.style.display = "none";
+        listView.style.display = "none";
+        formView.style.display = "none";
+        detailView.style.display = "block";
+        detailTitle.textContent = `${service.name} (ID ${service.id})`;
+        detailTableBody.innerHTML = `
+          <tr><th style="width: 160px;">Repo</th><td>${service.repo_url}</td></tr>
+          <tr><th>Tenant</th><td>${service.tenant || "-"}</td></tr>
+          <tr><th>Owner</th><td>${service.owner_team}</td></tr>
+          <tr><th>Runtime</th><td>${service.runtime}</td></tr>
+          <tr><th>Tier</th><td>${service.tier}</td></tr>
+          <tr><th>Environments</th><td>${service.environments.join(", ") || "none"}</td></tr>
+        `;
+        detailProvisionStatus.textContent = "";
+        detailDeployStatus.textContent = "";
+        if (service.provision_status && service.provision_status !== "not_requested") {
+          detailProvisionStatus.textContent = `${service.provision_status}${service.provision_detail ? ` — ${service.provision_detail}` : ""}`;
+        }
+        detailStatus.textContent = "";
+      }
+
+      document.getElementById("login-btn").addEventListener("click", login);
+      document.getElementById("save-service-btn").addEventListener("click", saveService);
+      document.getElementById("clear-form-btn").addEventListener("click", clearForm);
+      document.getElementById("add-service-btn").addEventListener("click", () => {
+        clearForm();
+        showFormView();
+      });
+      document.getElementById("back-to-list-btn").addEventListener("click", showServices);
+      document.getElementById("back-to-services-btn").addEventListener("click", showServices);
+      tabOverview.addEventListener("click", showOverview);
+      tabServices.addEventListener("click", () => {
+        showServices();
+        loadServices();
+      });
+      document.getElementById("detail-provision-btn").addEventListener("click", () => {
+        if (selectedService) handleAction(selectedService, "provision", detailProvisionStatus);
+      });
+      document.getElementById("detail-deploy-btn").addEventListener("click", () => {
+        if (selectedService) handleAction(selectedService, "deploy", detailDeployStatus);
+      });
+      document.getElementById("detail-delete-btn").addEventListener("click", () => {
+        if (selectedService) handleAction(selectedService, "delete", detailStatus);
+      });
+
+      function init() {
+        loginView.style.display = "block";
+        appView.style.display = "none";
+      }
+
+      init();
+    </script>
+  </body>
+</html>
