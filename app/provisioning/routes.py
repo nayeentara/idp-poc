@@ -46,6 +46,7 @@ def provision_env(
     detail = "Provisioning queued"
     status = "queued"
     execution_arn = None
+    # dummy commit tests
     if STEP_FUNCTION_ARN:
         try:
             execution_arn = start_step_function_execution(service, tenant)
