@@ -168,6 +168,7 @@ resource "aws_iam_policy" "ecs_task_permissions" {
         Effect = "Allow",
         Action = [
           "eks:DescribeCluster",
+          "states:StartExecution",
           "secretsmanager:CreateSecret",
           "secretsmanager:PutSecretValue",
           "secretsmanager:DescribeSecret",
