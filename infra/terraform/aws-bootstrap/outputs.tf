@@ -34,12 +34,28 @@ output "ecr_repo" {
   value = aws_ecr_repository.provisioner.repository_url
 }
 
+output "app_ecr_repo" {
+  value = aws_ecr_repository.app.repository_url
+}
+
 output "ecs_cluster" {
   value = aws_ecs_cluster.provisioner.name
 }
 
 output "ecs_task_definition" {
   value = aws_ecs_task_definition.provisioner.arn
+}
+
+output "app_ecs_service" {
+  value = aws_ecs_service.app.name
+}
+
+output "app_ecs_task_definition" {
+  value = aws_ecs_task_definition.app.arn
+}
+
+output "app_alb_dns" {
+  value = aws_lb.app.dns_name
 }
 
 output "tf_state_bucket" {

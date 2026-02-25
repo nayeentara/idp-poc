@@ -1,6 +1,6 @@
 FROM hashicorp/terraform:1.9.4
 
-RUN apk add --no-cache bash curl jq
+RUN apk add --no-cache bash curl jq aws-cli
 
 WORKDIR /workspace
 

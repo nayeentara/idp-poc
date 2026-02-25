@@ -77,3 +77,38 @@ variable "create_state_backend" {
   type    = bool
   default = true
 }
+
+variable "app_cpu" {
+  type    = number
+  default = 512
+}
+
+variable "app_memory" {
+  type    = number
+  default = 1024
+}
+
+variable "app_desired_count" {
+  type    = number
+  default = 1
+}
+
+variable "app_image_tag" {
+  type    = string
+  default = "latest"
+}
+
+variable "app_jwt_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "app_callback_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "app_step_function_arn" {
+  type    = string
+  default = ""
+}

@@ -7,12 +7,12 @@
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
-        "Cluster": "REPLACE_ME",
-        "TaskDefinition": "REPLACE_ME",
+        "Cluster": "idp-poc-provisioner",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:851725247426:task-definition/idp-poc-provisioner:1",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
-            "Subnets": ["REPLACE_ME"],
-            "SecurityGroups": ["REPLACE_ME"],
+            "Subnets": [ "subnet-05efffbc75d04fa7f", "subnet-0159ddba067e8bcbe", "subnet-01c035733117ad920" ],
+            "SecurityGroups": ["sg-0194345e0215eda2f"],
             "AssignPublicIp": "DISABLED"
           }
         },
@@ -27,15 +27,17 @@
                 {"Name": "RDS_SCHEMA", "Value.$": "$.tenant.rds_schema"},
                 {"Name": "S3_BUCKET", "Value.$": "$.tenant.s3_bucket"},
                 {"Name": "SERVICE_ID", "Value.$": "$.service.id"},
-                {"Name": "PROVISIONING_API_URL", "Value": "REPLACE_ME"},
-                {"Name": "PROVISIONING_CALLBACK_TOKEN", "Value": "REPLACE_ME"},
-                {"Name": "TF_VAR_db_host", "Value": "REPLACE_ME"},
-                {"Name": "TF_VAR_db_name", "Value": "REPLACE_ME"},
-                {"Name": "TF_VAR_db_admin_user", "Value": "REPLACE_ME"},
-                {"Name": "TF_VAR_db_admin_password", "Value": "REPLACE_ME"},
+                {"Name": "PROVISIONING_API_URL", "Value": "http://idp-poc-alb-1860907664.us-east-1.elb.amazonaws.com"},
+                {"Name": "PROVISIONING_CALLBACK_TOKEN", "Value": "7338d2c2ea275306e0b91ae75b0dddeac2fa762c8dff74b6"},
+                {"Name": "EKS_CLUSTER_NAME", "Value": "idp-poc-eks"},
+                {"Name": "AWS_REGION", "Value": "us-east-1"},
+                {"Name": "TF_VAR_db_host", "Value": "idp-poc-postgres.ccnwkkqu6xew.us-east-1.rds.amazonaws.com"},
+                {"Name": "TF_VAR_db_name", "Value": "idp_shared"},
+                {"Name": "TF_VAR_db_admin_user", "Value": "idp_admin"},
+                {"Name": "TF_VAR_db_admin_password", "Value": "postgres"},
                 {"Name": "TF_VAR_tenant_db_password", "Value.$": "$.tenant.db_password"},
-                {"Name": "TF_VAR_kubeconfig_path", "Value": "REPLACE_ME"},
-                {"Name": "TF_VAR_aws_region", "Value": "REPLACE_ME"}
+                {"Name": "TF_VAR_kubeconfig_path", "Value": "/tmp/kubeconfig"},
+                {"Name": "TF_VAR_aws_region", "Value": "us-east-1"}
               ]
             }
           ]

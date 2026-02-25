@@ -7,6 +7,16 @@ set -euo pipefail
 : "${S3_BUCKET:?S3_BUCKET is required}"
 : "${PROVISIONING_API_URL:?PROVISIONING_API_URL is required}"
 : "${PROVISIONING_CALLBACK_TOKEN:?PROVISIONING_CALLBACK_TOKEN is required}"
+: "${AWS_REGION:?AWS_REGION is required}"
+: "${EKS_CLUSTER_NAME:?EKS_CLUSTER_NAME is required}"
+
+KUBECONFIG_PATH="${TF_VAR_kubeconfig_path:-/tmp/kubeconfig}"
+aws eks update-kubeconfig \
+  --name "$EKS_CLUSTER_NAME" \
+  --region "$AWS_REGION" \
+  --kubeconfig "$KUBECONFIG_PATH"
+
+export TF_VAR_kubeconfig_path="$KUBECONFIG_PATH"
 
 WORKDIR=/workspace/terraform
 cd "$WORKDIR"

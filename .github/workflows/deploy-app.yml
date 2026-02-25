@@ -1,0 +1,59 @@
+name: Deploy App to ECS
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        env:
+          ECR_REPO: ${{ secrets.APP_ECR_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_REPO:$IMAGE_TAG" .
+          docker push "$ECR_REPO:$IMAGE_TAG"
+          docker tag "$ECR_REPO:$IMAGE_TAG" "$ECR_REPO:latest"
+          docker push "$ECR_REPO:latest"
+
+      - name: Update task definition and deploy
+        env:
+          TASK_FAMILY: ${{ secrets.APP_ECS_TASK_DEFINITION_FAMILY }}
+          CONTAINER_NAME: app
+          IMAGE: ${{ secrets.APP_ECR_REPO }}:${{ github.sha }}
+          CLUSTER: ${{ secrets.APP_ECS_CLUSTER }}
+          SERVICE: ${{ secrets.APP_ECS_SERVICE }}
+        run: |
+          set -euo pipefail
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition "$TASK_FAMILY")
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
+            --arg IMAGE "$IMAGE" \
+            --arg CONTAINER_NAME "$CONTAINER_NAME" \
+            '.taskDefinition
+            | .containerDefinitions |= (map(if .name==$CONTAINER_NAME then .image=$IMAGE else . end))
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          NEW_TASK_INFO=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF")
+          NEW_TASK_ARN=$(echo "$NEW_TASK_INFO" | jq -r '.taskDefinition.taskDefinitionArn')
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --task-definition "$NEW_TASK_ARN"
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"

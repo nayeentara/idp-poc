@@ -53,3 +53,20 @@ Also set `PROVISIONING_CALLBACK_TOKEN` and configure your worker to call:
 
 ### Worker
 See `infra/provisioner/README.md` for the Terraform-based worker that runs in ECS/EKS and updates status.
+
+## AWS Deploy (ECS + ALB)
+The Terraform stack in `infra/terraform/aws-bootstrap` can create:
+- VPC, EKS, RDS
+- ECS service + ALB for the app
+- ECR repo for the app image
+
+### GitHub Actions
+Create the following GitHub Secrets in your repo:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `APP_ECR_REPO` (from Terraform output `app_ecr_repo`)
+- `APP_ECS_CLUSTER` (from Terraform output `ecs_cluster`)
+- `APP_ECS_SERVICE` (from Terraform output `app_ecs_service`)
+- `APP_ECS_TASK_DEFINITION_FAMILY` (family name, e.g., `idp-poc-app`)
+
+On `main` pushes, the workflow builds and deploys the app to ECS.

@@ -87,12 +87,21 @@ resource "aws_ecr_repository" "provisioner" {
   name = "${local.name}-provisioner"
 }
 
+resource "aws_ecr_repository" "app" {
+  name = "${local.name}-app"
+}
+
 resource "aws_ecs_cluster" "provisioner" {
   name = "${local.name}-provisioner"
 }
 
 resource "aws_cloudwatch_log_group" "provisioner" {
   name              = "/ecs/${local.name}-provisioner"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/${local.name}-app"
   retention_in_days = 14
 }
 
@@ -189,6 +198,151 @@ resource "aws_ecs_task_definition" "provisioner" {
       ]
     }
   ])
+}
+
+resource "aws_secretsmanager_secret" "app_db" {
+  name = "${local.name}/app/db_url"
+}
+
+resource "aws_secretsmanager_secret_version" "app_db" {
+  secret_id     = aws_secretsmanager_secret.app_db.id
+  secret_string = "postgresql+psycopg2://${var.rds_username}:${var.rds_password}@${aws_db_instance.postgres.address}:5432/${var.rds_db_name}"
+}
+
+resource "aws_security_group" "alb" {
+  name        = "${local.name}-alb-sg"
+  description = "ALB ingress"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "app" {
+  name        = "${local.name}-app-sg"
+  description = "App service"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_lb" "app" {
+  name               = "${local.name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = module.vpc.public_subnets
+}
+
+resource "aws_lb_target_group" "app" {
+  name        = "${local.name}-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/health"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_listener" "app" {
+  load_balancer_arn = aws_lb.app.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${local.name}-app"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = var.app_cpu
+  memory                   = var.app_memory
+  execution_role_arn        = aws_iam_role.ecs_task_execution.arn
+  task_role_arn             = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "app",
+      image     = "${aws_ecr_repository.app.repository_url}:${var.app_image_tag}",
+      essential = true,
+      portMappings = [
+        { containerPort = 8000, hostPort = 8000, protocol = "tcp" }
+      ],
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.app.name,
+          awslogs-region        = var.aws_region,
+          awslogs-stream-prefix = "ecs"
+        }
+      },
+      environment = [
+        { name = "JWT_SECRET", value = var.app_jwt_secret },
+        { name = "PROVISIONING_CALLBACK_TOKEN", value = var.app_callback_token },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "STEP_FUNCTION_ARN", value = var.app_step_function_arn }
+      ],
+      secrets = [
+        { name = "DB_URL", valueFrom = aws_secretsmanager_secret.app_db.arn }
+      ]
+    }
+  ])
+}
+
+resource "aws_ecs_service" "app" {
+  name            = "${local.name}-app"
+  cluster         = aws_ecs_cluster.provisioner.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = var.app_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = module.vpc.private_subnets
+    security_groups = [aws_security_group.app.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = 8000
+  }
+
+  depends_on = [aws_lb_listener.app]
 }
 
 resource "aws_s3_bucket" "tf_state" {
