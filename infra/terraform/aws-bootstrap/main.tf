@@ -111,9 +111,9 @@ resource "aws_iam_role" "ecs_task_execution" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow",
+        Effect    = "Allow",
         Principal = { Service = "ecs-tasks.amazonaws.com" },
-        Action = "sts:AssumeRole"
+        Action    = "sts:AssumeRole"
       }
     ]
   })
@@ -124,15 +124,36 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
+  name = "${local.name}-ecs-task-execution-secrets"
+  role = aws_iam_role.ecs_task_execution.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ],
+        Resource = [
+          aws_secretsmanager_secret.app_db.arn,
+          "${aws_secretsmanager_secret.app_db.arn}*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "ecs_task" {
   name = "${local.name}-ecs-task"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow",
+        Effect    = "Allow",
         Principal = { Service = "ecs-tasks.amazonaws.com" },
-        Action = "sts:AssumeRole"
+        Action    = "sts:AssumeRole"
       }
     ]
   })
@@ -173,8 +194,8 @@ resource "aws_ecs_task_definition" "provisioner" {
   network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
-  execution_role_arn        = aws_iam_role.ecs_task_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -291,8 +312,8 @@ resource "aws_ecs_task_definition" "app" {
   network_mode             = "awsvpc"
   cpu                      = var.app_cpu
   memory                   = var.app_memory
-  execution_role_arn        = aws_iam_role.ecs_task_execution.arn
-  task_role_arn             = aws_iam_role.ecs_task.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     {
@@ -331,8 +352,8 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = module.vpc.private_subnets
-    security_groups = [aws_security_group.app.id]
+    subnets          = module.vpc.private_subnets
+    security_groups  = [aws_security_group.app.id]
     assign_public_ip = false
   }
 
