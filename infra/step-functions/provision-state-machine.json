@@ -26,7 +26,7 @@
                 {"Name": "NAMESPACE", "Value.$": "$.tenant.namespace"},
                 {"Name": "RDS_SCHEMA", "Value.$": "$.tenant.rds_schema"},
                 {"Name": "S3_BUCKET", "Value.$": "$.tenant.s3_bucket"},
-                {"Name": "SERVICE_ID", "Value.$": "$.service.id"},
+                {"Name": "SERVICE_ID", "Value.$": "States.Format('{}', $.service.id)"},
                 {"Name": "PROVISIONING_API_URL", "Value": "http://idp-poc-alb-1860907664.us-east-1.elb.amazonaws.com"},
                 {"Name": "PROVISIONING_CALLBACK_TOKEN", "Value": "7338d2c2ea275306e0b91ae75b0dddeac2fa762c8dff74b6"},
                 {"Name": "EKS_CLUSTER_NAME", "Value": "idp-poc-eks"},
