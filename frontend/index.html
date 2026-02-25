@@ -530,7 +530,7 @@
         listView.style.display = "none";
         formView.style.display = "none";
         detailView.style.display = "block";
-        detailTitle.textContent = `${service.name} (ID ${service.id})`;
+        detailTitle.textContent = service.name;
         detailTableBody.innerHTML = `
           <tr><th style="width: 160px;">Repo</th><td>${service.repo_url}</td></tr>
           <tr><th>Tenant</th><td>${service.tenant || "-"}</td></tr>

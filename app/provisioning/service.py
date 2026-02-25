@@ -1,5 +1,6 @@
 import json
 import re
+import secrets
 from typing import Optional
 
 from app.core.config import AWS_REGION, DEFAULT_BUCKET_PREFIX, STEP_FUNCTION_ARN
@@ -15,6 +16,11 @@ except Exception:  # pragma: no cover - optional dependency for Step Functions
 def slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower())
     return slug.strip("-") or "tenant"
+
+
+def generate_tenant_db_password() -> str:
+    # URL-safe token avoids shell/JSON escaping issues when passed through env vars.
+    return secrets.token_urlsafe(24)
 
 
 def get_or_create_tenant(db, tenant_name: str) -> TenantModel:
@@ -50,6 +56,7 @@ def start_step_function_execution(service: ServiceModel, tenant: TenantModel) ->
             "namespace": tenant.namespace,
             "rds_schema": tenant.rds_schema,
             "s3_bucket": tenant.s3_bucket,
+            "db_password": generate_tenant_db_password(),
         },
         "service": {
             "id": service.id,
