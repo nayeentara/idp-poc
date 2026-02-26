@@ -20,6 +20,7 @@ class StatusResponse(BaseModel):
 class ProvisionCallback(BaseModel):
     service_id: int
     tenant: str
+    action: str = "provision"
     status: str
     detail: str = ""
     execution_arn: Optional[str] = None

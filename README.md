@@ -43,6 +43,7 @@ uvicorn app.main:app --reload
 - `PUT /services/{id}`
 - `DELETE /services/{id}`
 - `POST /services/{id}/actions/provision`
+- `POST /services/{id}/actions/deprovision`
 - `POST /services/{id}/actions/deploy`
 - `GET /services/{id}/actions/status`
 

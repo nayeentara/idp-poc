@@ -23,6 +23,7 @@
               "Command": ["./provision.sh"],
               "Environment": [
                 {"Name": "TENANT_NAME", "Value.$": "$.tenant.name"},
+                {"Name": "ACTION", "Value.$": "$.action"},
                 {"Name": "NAMESPACE", "Value.$": "$.tenant.namespace"},
                 {"Name": "RDS_SCHEMA", "Value.$": "$.tenant.rds_schema"},
                 {"Name": "S3_BUCKET", "Value.$": "$.tenant.s3_bucket"},

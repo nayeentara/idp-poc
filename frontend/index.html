@@ -204,6 +204,34 @@
         margin-top: 8px;
         color: var(--accent-2);
       }
+      .auth-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .action-stack {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+        max-width: 360px;
+      }
+      .action-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #faf8f5;
+      }
+      .action-item button {
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 999px;
+      }
+      .action-status {
+        min-height: 18px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -212,7 +240,10 @@
         <h1>IDP Portal</h1>
         <span>Thin API Gateway for Developer Self-Serve</span>
       </div>
-      <div id="auth-info">Not signed in</div>
+      <div class="auth-bar">
+        <div id="auth-info">Not signed in</div>
+        <button id="logout-btn" class="secondary" style="display: none;">Sign out</button>
+      </div>
     </header>
     <main>
       <section class="card" id="login-view" style="max-width: 420px; margin: 40px auto;">
@@ -258,14 +289,18 @@
               <tbody id="detail-table-body"></tbody>
             </table>
           </div>
-          <div class="actions" style="margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-            <div style="display: inline-flex; align-items: center; gap: 8px;">
+          <div class="actions action-stack">
+            <div class="action-item">
               <button id="detail-provision-btn">Provision env</button>
-              <span class="meta" id="detail-provision-status"></span>
+              <div class="action-status" id="detail-provision-status"></div>
             </div>
-            <div style="display: inline-flex; align-items: center; gap: 8px;">
+            <div class="action-item">
               <button id="detail-deploy-btn">Deploy</button>
-              <span class="meta" id="detail-deploy-status"></span>
+              <div class="action-status" id="detail-deploy-status"></div>
+            </div>
+            <div class="action-item">
+              <button id="detail-deprovision-btn" class="ghost">Deprovision</button>
+              <div class="action-status" id="detail-deprovision-status"></div>
             </div>
           </div>
           <div style="margin-top: 16px;">
@@ -332,8 +367,10 @@
       const apiBase = "";
       let token = "";
       let currentRole = "";
+      let statusPollTimer = null;
 
       const authInfo = document.getElementById("auth-info");
+      const logoutBtn = document.getElementById("logout-btn");
       const loginStatus = document.getElementById("login-status");
       const saveStatus = document.getElementById("save-status");
       const loginView = document.getElementById("login-view");
@@ -349,6 +386,7 @@
       const detailStatus = document.getElementById("detail-status");
       const detailProvisionStatus = document.getElementById("detail-provision-status");
       const detailDeployStatus = document.getElementById("detail-deploy-status");
+      const detailDeprovisionStatus = document.getElementById("detail-deprovision-status");
       let servicesCache = [];
       let selectedService = null;
 
@@ -377,14 +415,56 @@
           token = data.token;
           currentRole = data.role;
           authInfo.textContent = `Signed in as ${username} (${currentRole})`;
+          logoutBtn.style.display = "inline-block";
           loginStatus.textContent = "Login successful.";
           loginView.style.display = "none";
           appView.style.display = "block";
+          document.getElementById("password").value = "";
           showOverview();
           await loadServices();
         } catch (err) {
           loginStatus.textContent = `Login failed: ${err.message}`;
         }
+      }
+
+      function stopStatusPolling() {
+        if (statusPollTimer) {
+          clearInterval(statusPollTimer);
+          statusPollTimer = null;
+        }
+      }
+
+      async function refreshProvisionStatus() {
+        if (!selectedService || detailView.style.display === "none") return;
+        try {
+          const data = await api(`/services/${selectedService.id}/actions/status`);
+          detailProvisionStatus.textContent = `${data.status}${data.detail ? ` - ${data.detail}` : ""}`;
+        } catch (_err) {
+          // Keep last known status if polling fails transiently.
+        }
+      }
+
+      function startStatusPolling() {
+        stopStatusPolling();
+        statusPollTimer = setInterval(refreshProvisionStatus, 4000);
+        refreshProvisionStatus();
+      }
+
+      function logout() {
+        stopStatusPolling();
+        token = "";
+        currentRole = "";
+        selectedService = null;
+        servicesCache = [];
+        authInfo.textContent = "Not signed in";
+        logoutBtn.style.display = "none";
+        detailStatus.textContent = "";
+        detailProvisionStatus.textContent = "";
+        detailDeployStatus.textContent = "";
+        detailDeprovisionStatus.textContent = "";
+        loginStatus.textContent = "";
+        appView.style.display = "none";
+        loginView.style.display = "block";
       }
 
       async function loadServices() {
@@ -451,9 +531,11 @@
             statusEl.textContent = data.detail;
             return;
           }
-          const endpoint = action === "provision" ? "provision" : "deploy";
+          const endpoint = action;
+          statusEl.textContent = "Starting...";
           const data = await api(`/services/${service.id}/actions/${endpoint}`, { method: "POST" });
           statusEl.textContent = data.detail;
+          if (action === "provision" || action === "deprovision") startStatusPolling();
         } catch (err) {
           statusEl.textContent = `Action failed: ${err.message}`;
         }
@@ -495,18 +577,21 @@
       }
 
       function showListView() {
+        stopStatusPolling();
         listView.style.display = "block";
         detailView.style.display = "none";
         formView.style.display = "none";
       }
 
       function showFormView() {
+        stopStatusPolling();
         listView.style.display = "none";
         detailView.style.display = "none";
         formView.style.display = "block";
       }
 
       function showOverview() {
+        stopStatusPolling();
         tabOverview.classList.add("active");
         tabServices.classList.remove("active");
         overviewView.style.display = "block";
@@ -541,13 +626,16 @@
         `;
         detailProvisionStatus.textContent = "";
         detailDeployStatus.textContent = "";
+        detailDeprovisionStatus.textContent = "";
         if (service.provision_status && service.provision_status !== "not_requested") {
           detailProvisionStatus.textContent = `${service.provision_status}${service.provision_detail ? ` — ${service.provision_detail}` : ""}`;
         }
         detailStatus.textContent = "";
+        startStatusPolling();
       }
 
       document.getElementById("login-btn").addEventListener("click", login);
+      logoutBtn.addEventListener("click", logout);
       document.getElementById("save-service-btn").addEventListener("click", saveService);
       document.getElementById("clear-form-btn").addEventListener("click", clearForm);
       document.getElementById("add-service-btn").addEventListener("click", () => {
@@ -566,6 +654,9 @@
       });
       document.getElementById("detail-deploy-btn").addEventListener("click", () => {
         if (selectedService) handleAction(selectedService, "deploy", detailDeployStatus);
+      });
+      document.getElementById("detail-deprovision-btn").addEventListener("click", () => {
+        if (selectedService) handleAction(selectedService, "deprovision", detailDeprovisionStatus);
       });
       document.getElementById("detail-delete-btn").addEventListener("click", () => {
         if (selectedService) handleAction(selectedService, "delete", detailStatus);

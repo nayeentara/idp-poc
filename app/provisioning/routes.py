@@ -19,6 +19,55 @@ def _ensure_service(db: Session, service_id: int) -> ServiceModel:
     return service
 
 
+def _start_provisioning_action(service: ServiceModel, tenant: TenantModel, action: str, db: Session) -> ActionResponse:
+    action_title = "Provisioning" if action == "provision" else "Deprovisioning"
+    service.provision_status = "in_progress"
+    service.provision_detail = f"{action_title} started"
+    tenant.status = "in_progress"
+    tenant.detail = f"{action_title} started"
+
+    request = ProvisionRequestModel(
+        service_id=service.id,
+        tenant=service.tenant,
+        action=action,
+        status="queued",
+        detail=f"{action_title} request queued",
+    )
+    db.add(request)
+    db.commit()
+
+    detail = f"{action_title} queued"
+    req_status = "queued"
+    if STEP_FUNCTION_ARN:
+        try:
+            request.execution_arn = start_step_function_execution(service, tenant, action=action)
+            detail = f"{action_title} started via Step Functions"
+            req_status = "in_progress"
+        except Exception as exc:  # pragma: no cover - integration path
+            service.provision_status = "failed"
+            service.provision_detail = f"{action_title} failed to start: {exc}"
+            tenant.status = "failed"
+            tenant.detail = f"{action_title} failed to start"
+            request.status = "failed"
+            request.detail = "Step Functions start failed"
+            db.commit()
+            return ActionResponse(
+                service_id=service.id,
+                action=action,
+                status="failed",
+                detail=f"Failed to start {action} workflow",
+            )
+    else:
+        detail = f"{action_title} queued (Step Functions not configured)"
+
+    service.provision_status = "in_progress"
+    service.provision_detail = detail
+    request.status = req_status
+    request.detail = detail
+    db.commit()
+    return ActionResponse(service_id=service.id, action=action, status=req_status, detail=detail)
+
+
 @router.post("/services/{service_id}/actions/provision", response_model=ActionResponse)
 def provision_env(
     service_id: int,
@@ -27,60 +76,18 @@ def provision_env(
 ):
     service = _ensure_service(db, service_id)
     tenant = get_or_create_tenant(db, service.tenant)
+    return _start_provisioning_action(service, tenant, "provision", db)
 
-    service.provision_status = "in_progress"
-    service.provision_detail = "Provisioning started"
-    tenant.status = "in_progress"
-    tenant.detail = "Provisioning started"
 
-    request = ProvisionRequestModel(
-        service_id=service.id,
-        tenant=service.tenant,
-        action="provision",
-        status="queued",
-        detail="Provisioning request queued",
-    )
-    db.add(request)
-    db.commit()
-
-    detail = "Provisioning queued"
-    status = "queued"
-    execution_arn = None
-    # dummy commit tests
-    if STEP_FUNCTION_ARN:
-        try:
-            execution_arn = start_step_function_execution(service, tenant)
-            request.execution_arn = execution_arn
-            detail = "Provisioning started via Step Functions"
-            status = "in_progress"
-        except Exception as exc:  # pragma: no cover - integration path
-            service.provision_status = "failed"
-            service.provision_detail = f"Provisioning failed to start: {exc}"
-            tenant.status = "failed"
-            tenant.detail = "Provisioning failed to start"
-            request.status = "failed"
-            request.detail = "Step Functions start failed"
-            db.commit()
-            return ActionResponse(
-                service_id=service_id,
-                action="provision",
-                status="failed",
-                detail="Failed to start provisioning workflow",
-            )
-    else:
-        detail = "Provisioning queued (Step Functions not configured)"
-
-    service.provision_status = "in_progress"
-    service.provision_detail = detail
-    request.status = status
-    request.detail = detail
-    db.commit()
-    return ActionResponse(
-        service_id=service_id,
-        action="provision",
-        status=status,
-        detail=detail,
-    )
+@router.post("/services/{service_id}/actions/deprovision", response_model=ActionResponse)
+def deprovision_env(
+    service_id: int,
+    _: str = Depends(require_roles(ROLE_ADMIN, ROLE_DEVELOPER)),
+    db: Session = Depends(get_db),
+):
+    service = _ensure_service(db, service_id)
+    tenant = get_or_create_tenant(db, service.tenant)
+    return _start_provisioning_action(service, tenant, "deprovision", db)
 
 
 @router.get("/services/{service_id}/actions/status", response_model=StatusResponse)
@@ -124,7 +131,7 @@ def provisioning_callback(payload: ProvisionCallback, request: Request, db: Sess
         .filter(
             ProvisionRequestModel.service_id == payload.service_id,
             ProvisionRequestModel.tenant == payload.tenant,
-            ProvisionRequestModel.action == "provision",
+            ProvisionRequestModel.action == payload.action,
         )
         .order_by(ProvisionRequestModel.id.desc())
         .first()

@@ -42,21 +42,26 @@ def get_or_create_tenant(db, tenant_name: str) -> TenantModel:
     return tenant
 
 
-def start_step_function_execution(service: ServiceModel, tenant: TenantModel) -> Optional[str]:
+def start_step_function_execution(service: ServiceModel, tenant: TenantModel, action: str = "provision") -> Optional[str]:
     if not STEP_FUNCTION_ARN:
         return None
     if not boto3:
         raise RuntimeError("boto3 not installed")
 
     client = boto3.client("stepfunctions", region_name=AWS_REGION)
+    tenant_payload = {
+        "name": tenant.name,
+        "namespace": tenant.namespace,
+        "rds_schema": tenant.rds_schema,
+        "s3_bucket": tenant.s3_bucket,
+    }
+    if action == "provision":
+        tenant_payload["db_password"] = generate_tenant_db_password()
+
     execution_input = {
-        "action": "provision",
+        "action": action,
         "tenant": {
-            "name": tenant.name,
-            "namespace": tenant.namespace,
-            "rds_schema": tenant.rds_schema,
-            "s3_bucket": tenant.s3_bucket,
-            "db_password": generate_tenant_db_password(),
+            **tenant_payload,
         },
         "service": {
             "id": service.id,
