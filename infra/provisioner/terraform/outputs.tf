@@ -3,13 +3,16 @@ output "namespace" {
 }
 
 output "rds_schema" {
-  value = postgresql_schema.tenant.name
+  value = var.rds_schema
 }
 
 output "s3_bucket" {
-  value = aws_s3_bucket.tenant.bucket
+  value = var.s3_bucket
 }
 
 output "secret_arn" {
-  value = aws_secretsmanager_secret.tenant_db.arn
+  value = try(
+    aws_secretsmanager_secret.tenant_db[0].arn,
+    data.aws_secretsmanager_secret.tenant_db[0].arn
+  )
 }
