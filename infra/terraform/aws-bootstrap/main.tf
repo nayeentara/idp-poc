@@ -172,7 +172,12 @@ resource "aws_iam_policy" "ecs_task_permissions" {
           "secretsmanager:CreateSecret",
           "secretsmanager:PutSecretValue",
           "secretsmanager:DescribeSecret",
+          "secretsmanager:GetResourcePolicy",
+          "secretsmanager:GetSecretValue",
           "s3:CreateBucket",
+          "s3:GetBucketLocation",
+          "s3:GetBucketTagging",
+          "s3:ListBucket",
           "s3:PutBucketTagging",
           "s3:PutBucketEncryption",
           "s3:PutBucketVersioning",
@@ -269,6 +274,16 @@ resource "aws_security_group" "app" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_security_group_rule" "eks_cluster_api_from_app_tasks" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = module.eks.cluster_security_group_id
+  source_security_group_id = aws_security_group.app.id
+  description              = "Allow ECS app/provisioner tasks to reach EKS API"
 }
 
 resource "aws_lb" "app" {
