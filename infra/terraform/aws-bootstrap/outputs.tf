@@ -38,6 +38,10 @@ output "app_ecr_repo" {
   value = aws_ecr_repository.app.repository_url
 }
 
+output "deployer_ecr_repo" {
+  value = aws_ecr_repository.deployer.repository_url
+}
+
 output "ecs_cluster" {
   value = aws_ecs_cluster.provisioner.name
 }
@@ -52,6 +56,10 @@ output "app_ecs_service" {
 
 output "app_ecs_task_definition" {
   value = aws_ecs_task_definition.app.arn
+}
+
+output "deployer_ecs_task_definition" {
+  value = aws_ecs_task_definition.deployer.arn
 }
 
 output "app_alb_dns" {

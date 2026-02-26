@@ -45,6 +45,7 @@ def _start_deploy_execution(service: ServiceModel, deployment: DeploymentModel) 
         "service": {
             "id": service.id,
             "name": service.name,
+            "tenant": service.tenant,
             "repo_url": service.repo_url,
             "owner_team": service.owner_team,
             "runtime": service.runtime,

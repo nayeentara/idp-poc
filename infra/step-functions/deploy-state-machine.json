@@ -14,7 +14,7 @@
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "idp-poc-provisioner",
-        "TaskDefinition": "arn:aws:ecs:us-east-1:851725247426:task-definition/idp-poc-provisioner:1",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:851725247426:task-definition/idp-poc-deployer:1",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -31,11 +31,27 @@
         "Overrides": {
           "ContainerOverrides": [
             {
-              "Name": "terraform",
+              "Name": "deployer",
               "Environment": [
                 {
-                  "Name": "ACTION",
-                  "Value": "deploy"
+                  "Name": "AWS_REGION",
+                  "Value": "us-east-1"
+                },
+                {
+                  "Name": "AWS_ACCOUNT_ID",
+                  "Value": "851725247426"
+                },
+                {
+                  "Name": "EKS_CLUSTER_NAME",
+                  "Value": "idp-poc-eks"
+                },
+                {
+                  "Name": "DEPLOYMENT_API_URL",
+                  "Value": "http://idp-poc-alb-1860907664.us-east-1.elb.amazonaws.com"
+                },
+                {
+                  "Name": "DEPLOYMENT_CALLBACK_TOKEN",
+                  "Value": "7338d2c2ea275306e0b91ae75b0dddeac2fa762c8dff74b6"
                 },
                 {
                   "Name": "DEPLOYMENT_ID",
@@ -44,6 +60,18 @@
                 {
                   "Name": "TARGET_ENV",
                   "Value.$": "$.environment"
+                },
+                {
+                  "Name": "SERVICE_NAME",
+                  "Value.$": "$.service.name"
+                },
+                {
+                  "Name": "TENANT_NAME",
+                  "Value.$": "$.service.tenant"
+                },
+                {
+                  "Name": "NAMESPACE",
+                  "Value.$": "States.Format('tenant-{}', $.service.tenant)"
                 }
               ]
             }

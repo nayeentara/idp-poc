@@ -87,6 +87,10 @@ resource "aws_ecr_repository" "provisioner" {
   name = "${local.name}-provisioner"
 }
 
+resource "aws_ecr_repository" "deployer" {
+  name = "${local.name}-deployer"
+}
+
 resource "aws_ecr_repository" "app" {
   name = "${local.name}-app"
 }
@@ -97,6 +101,11 @@ resource "aws_ecs_cluster" "provisioner" {
 
 resource "aws_cloudwatch_log_group" "provisioner" {
   name              = "/ecs/${local.name}-provisioner"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_log_group" "deployer" {
+  name              = "/ecs/${local.name}-deployer"
   retention_in_days = 14
 }
 
@@ -227,6 +236,32 @@ resource "aws_ecs_task_definition" "provisioner" {
         { name = "TF_VAR_db_admin_password", value = var.rds_password },
         { name = "TF_VAR_aws_region", value = var.aws_region }
       ]
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "deployer" {
+  family                   = "${local.name}-deployer"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "deployer",
+      image     = "${aws_ecr_repository.deployer.repository_url}:latest",
+      essential = true,
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.deployer.name,
+          awslogs-region        = var.aws_region,
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
   ])
 }

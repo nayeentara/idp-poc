@@ -74,6 +74,8 @@ Create the following GitHub Secrets in your repo:
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `APP_ECR_REPO` (from Terraform output `app_ecr_repo`)
+- `PROVISIONER_ECR_REPO` (from Terraform output `ecr_repo`)
+- `DEPLOYER_ECR_REPO` (from Terraform output `deployer_ecr_repo`)
 - `APP_ECS_CLUSTER` (from Terraform output `ecs_cluster`)
 - `APP_ECS_SERVICE` (from Terraform output `app_ecs_service`)
 - `APP_ECS_TASK_DEFINITION_FAMILY` (family name, e.g., `idp-poc-app`)
