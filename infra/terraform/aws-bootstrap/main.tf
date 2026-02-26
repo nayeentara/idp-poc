@@ -176,6 +176,7 @@ resource "aws_iam_policy" "ecs_task_permissions" {
           "secretsmanager:GetSecretValue",
           "s3:CreateBucket",
           "s3:GetBucketLocation",
+          "s3:GetBucketPolicy",
           "s3:GetBucketTagging",
           "s3:ListBucket",
           "s3:PutBucketTagging",

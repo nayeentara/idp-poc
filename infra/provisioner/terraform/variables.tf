@@ -51,6 +51,11 @@ variable "tenant_db_password" {
   sensitive = true
 }
 
+variable "create_namespace" {
+  type    = bool
+  default = true
+}
+
 variable "create_s3_bucket" {
   type    = bool
   default = true

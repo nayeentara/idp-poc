@@ -1,5 +1,5 @@
 output "namespace" {
-  value = kubernetes_namespace.tenant.metadata[0].name
+  value = var.namespace
 }
 
 output "rds_schema" {

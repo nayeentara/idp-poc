@@ -22,6 +22,11 @@ create_s3_bucket=true
 create_tenant_secret=true
 create_tenant_role=true
 create_tenant_schema=true
+create_namespace=true
+
+if kubectl --kubeconfig "$KUBECONFIG_PATH" get namespace "$NAMESPACE" >/dev/null 2>&1; then
+  create_namespace=false
+fi
 
 if aws s3api head-bucket --bucket "$S3_BUCKET" >/dev/null 2>&1; then
   create_s3_bucket=false
@@ -50,6 +55,7 @@ terraform apply -auto-approve \
   -var "namespace=$NAMESPACE" \
   -var "rds_schema=$RDS_SCHEMA" \
   -var "s3_bucket=$S3_BUCKET" \
+  -var "create_namespace=$create_namespace" \
   -var "create_s3_bucket=$create_s3_bucket" \
   -var "create_tenant_secret=$create_tenant_secret" \
   -var "create_tenant_role=$create_tenant_role" \

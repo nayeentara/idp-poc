@@ -40,6 +40,7 @@ locals {
 }
 
 resource "kubernetes_namespace" "tenant" {
+  count = var.create_namespace ? 1 : 0
   metadata {
     name = var.namespace
     labels = {

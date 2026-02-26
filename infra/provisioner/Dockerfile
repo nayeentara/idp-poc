@@ -1,6 +1,6 @@
 FROM hashicorp/terraform:1.9.4
 
-RUN apk add --no-cache bash curl jq aws-cli postgresql15-client
+RUN apk add --no-cache bash curl jq aws-cli postgresql15-client kubectl
 
 WORKDIR /workspace
 
