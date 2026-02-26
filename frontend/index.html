@@ -444,10 +444,24 @@
         }
       }
 
+      async function refreshDeployStatus() {
+        if (!selectedService || detailView.style.display === "none") return;
+        try {
+          const data = await api(`/services/${selectedService.id}/actions/deploy/status`);
+          detailDeployStatus.textContent = `${data.status}${data.detail ? ` - ${data.detail}` : ""}`;
+        } catch (_err) {
+          // Keep last known deployment status if none exists yet.
+        }
+      }
+
       function startStatusPolling() {
         stopStatusPolling();
-        statusPollTimer = setInterval(refreshProvisionStatus, 4000);
+        statusPollTimer = setInterval(() => {
+          refreshProvisionStatus();
+          refreshDeployStatus();
+        }, 4000);
         refreshProvisionStatus();
+        refreshDeployStatus();
       }
 
       function logout() {
@@ -535,7 +549,7 @@
           statusEl.textContent = "Starting...";
           const data = await api(`/services/${service.id}/actions/${endpoint}`, { method: "POST" });
           statusEl.textContent = data.detail;
-          if (action === "provision" || action === "deprovision") startStatusPolling();
+          if (action === "provision" || action === "deprovision" || action === "deploy") startStatusPolling();
         } catch (err) {
           statusEl.textContent = `Action failed: ${err.message}`;
         }

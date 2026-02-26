@@ -1,0 +1,83 @@
+{
+  "Comment": "Service deployment workflow (template)",
+  "StartAt": "ValidateDeploymentRequest",
+  "States": {
+    "ValidateDeploymentRequest": {
+      "Type": "Pass",
+      "Comment": "Replace with Lambda to verify deployment_id exists and environment is ready",
+      "Next": "RunDeploymentRunner"
+    },
+    "RunDeploymentRunner": {
+      "Type": "Task",
+      "Comment": "Replace with ecs:runTask.sync or lambda invoke for Helm/GitOps runner",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "idp-poc-provisioner",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:851725247426:task-definition/idp-poc-provisioner:1",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-05efffbc75d04fa7f",
+              "subnet-0159ddba067e8bcbe",
+              "subnet-01c035733117ad920"
+            ],
+            "SecurityGroups": [
+              "sg-0194345e0215eda2f"
+            ],
+            "AssignPublicIp": "DISABLED"
+          }
+        },
+        "Overrides": {
+          "ContainerOverrides": [
+            {
+              "Name": "terraform",
+              "Environment": [
+                {
+                  "Name": "ACTION",
+                  "Value": "deploy"
+                },
+                {
+                  "Name": "DEPLOYMENT_ID",
+                  "Value.$": "States.Format('{}', $.deployment_id)"
+                },
+                {
+                  "Name": "TARGET_ENV",
+                  "Value.$": "$.environment"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "MarkFailed"
+        }
+      ],
+      "Next": "WaitForRollout"
+    },
+    "WaitForRollout": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "CheckRollout"
+    },
+    "CheckRollout": {
+      "Type": "Pass",
+      "Comment": "Replace with Lambda/ECS poller; route to rollback or success",
+      "Next": "MarkSucceeded"
+    },
+    "MarkSucceeded": {
+      "Type": "Succeed"
+    },
+    "MarkFailed": {
+      "Type": "Fail",
+      "Error": "DeploymentFailed",
+      "Cause": "Deployment workflow failed"
+    }
+  }
+}

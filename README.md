@@ -45,7 +45,9 @@ uvicorn app.main:app --reload
 - `POST /services/{id}/actions/provision`
 - `POST /services/{id}/actions/deprovision`
 - `POST /services/{id}/actions/deploy`
+- `GET /services/{id}/actions/deploy/status`
 - `GET /services/{id}/actions/status`
+- `POST /services/deployments/callback`
 
 ## Provisioning (Step Functions)
 Set `STEP_FUNCTION_ARN` and `AWS_REGION` to enable Step Functions execution on provision actions.
@@ -54,6 +56,12 @@ Also set `PROVISIONING_CALLBACK_TOKEN` and configure your worker to call:
 
 ### Worker
 See `infra/provisioner/README.md` for the Terraform-based worker that runs in ECS/EKS and updates status.
+
+## Deploy (Step Functions)
+Set `DEPLOY_STEP_FUNCTION_ARN` (or fallback to `STEP_FUNCTION_ARN`) to enable deploy workflow execution.
+Set `DEPLOYMENT_CALLBACK_TOKEN` and configure your deployment worker to call:
+`POST /services/deployments/callback` with header `X-Callback-Token`.
+Reference template: `infra/step-functions/deploy-state-machine.json`.
 
 ## AWS Deploy (ECS + ALB)
 The Terraform stack in `infra/terraform/aws-bootstrap` can create:

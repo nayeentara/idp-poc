@@ -355,7 +355,8 @@ resource "aws_ecs_task_definition" "app" {
         { name = "JWT_SECRET", value = var.app_jwt_secret },
         { name = "PROVISIONING_CALLBACK_TOKEN", value = var.app_callback_token },
         { name = "AWS_REGION", value = var.aws_region },
-        { name = "STEP_FUNCTION_ARN", value = var.app_step_function_arn }
+        { name = "STEP_FUNCTION_ARN", value = var.app_step_function_arn },
+        { name = "DEPLOY_STEP_FUNCTION_ARN", value = var.app_deploy_step_function_arn }
       ],
       secrets = [
         { name = "DB_URL", valueFrom = aws_secretsmanager_secret.app_db.arn }

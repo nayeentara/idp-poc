@@ -112,3 +112,8 @@ variable "app_step_function_arn" {
   type    = string
   default = ""
 }
+
+variable "app_deploy_step_function_arn" {
+  type    = string
+  default = ""
+}

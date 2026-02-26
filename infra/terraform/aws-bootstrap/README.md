@@ -19,6 +19,7 @@ export TF_VAR_rds_password='CHANGEME-STRONG-PASSWORD'
 export TF_VAR_app_jwt_secret='CHANGEME-JWT-SECRET'
 export TF_VAR_app_callback_token='CHANGEME-CALLBACK-TOKEN'
 export TF_VAR_app_step_function_arn='OPTIONAL-STEP-FUNCTION-ARN'
+export TF_VAR_app_deploy_step_function_arn='OPTIONAL-DEPLOY-STEP-FUNCTION-ARN'
 terraform init
 terraform apply
 ```
