@@ -42,11 +42,31 @@ variable "db_admin_user" {
 }
 
 variable "db_admin_password" {
-  type = string
+  type      = string
   sensitive = true
 }
 
 variable "tenant_db_password" {
   type      = string
   sensitive = true
+}
+
+variable "create_s3_bucket" {
+  type    = bool
+  default = true
+}
+
+variable "create_tenant_role" {
+  type    = bool
+  default = true
+}
+
+variable "create_tenant_schema" {
+  type    = bool
+  default = true
+}
+
+variable "create_tenant_secret" {
+  type    = bool
+  default = true
 }
