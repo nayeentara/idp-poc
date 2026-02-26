@@ -104,4 +104,29 @@ spec:
 YAML
 
 kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$namespace" rollout status deployment/"$k8s_name" --timeout=180s
+
+obs_enabled="$(echo "${OBSERVABILITY_ENABLED:-false}" | tr '[:upper:]' '[:lower:]')"
+if [ "$obs_enabled" = "true" ]; then
+  otel_endpoint="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector.observability.svc.cluster.local:4317}"
+  kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$namespace" set env deployment/"$k8s_name" \
+    OTEL_SERVICE_NAME="$SERVICE_NAME" \
+    OTEL_EXPORTER_OTLP_ENDPOINT="$otel_endpoint" \
+    OTEL_EXPORTER_OTLP_PROTOCOL="grpc" \
+    OTEL_RESOURCE_ATTRIBUTES="service.name=$SERVICE_NAME,service.namespace=$namespace,deployment.environment=$TARGET_ENV"
+  kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$namespace" patch deployment "$k8s_name" --type merge -p '{
+    "spec": {
+      "template": {
+        "metadata": {
+          "annotations": {
+            "prometheus.io/scrape": "true",
+            "prometheus.io/port": "8000",
+            "prometheus.io/path": "/metrics"
+          }
+        }
+      }
+    }
+  }'
+  kubectl --kubeconfig "$KUBECONFIG_PATH" -n "$namespace" rollout status deployment/"$k8s_name" --timeout=180s
+fi
+
 send_deploy_callback "succeeded" "Deployment rollout succeeded"

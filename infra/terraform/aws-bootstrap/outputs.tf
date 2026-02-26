@@ -66,6 +66,30 @@ output "app_alb_dns" {
   value = aws_lb.app.dns_name
 }
 
+output "managed_observability_enabled" {
+  value = var.enable_managed_observability
+}
+
+output "managed_prometheus_workspace_id" {
+  value = try(aws_prometheus_workspace.observability[0].id, null)
+}
+
+output "managed_prometheus_workspace_arn" {
+  value = try(aws_prometheus_workspace.observability[0].arn, null)
+}
+
+output "managed_prometheus_endpoint" {
+  value = try(aws_prometheus_workspace.observability[0].prometheus_endpoint, null)
+}
+
+output "managed_grafana_workspace_id" {
+  value = try(aws_grafana_workspace.observability[0].id, null)
+}
+
+output "managed_grafana_workspace_url" {
+  value = try("https://${aws_grafana_workspace.observability[0].endpoint}", null)
+}
+
 output "tf_state_bucket" {
   value       = try(aws_s3_bucket.tf_state[0].bucket, null)
   description = "Terraform state bucket (if created)"

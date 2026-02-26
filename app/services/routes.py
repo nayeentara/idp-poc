@@ -1,9 +1,15 @@
 from typing import List
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.utils import ROLE_ADMIN, ROLE_DEVELOPER, ROLE_VIEWER, require_roles
+from app.core.config import (
+    OBSERVABILITY_GRAFANA_DASHBOARD_UID,
+    OBSERVABILITY_GRAFANA_ORG_ID,
+    OBSERVABILITY_GRAFANA_URL,
+)
 from app.core.deps import get_db
 from app.services.models import ServiceModel
 from app.services.schemas import Service, ServiceInput
@@ -12,6 +18,13 @@ router = APIRouter(prefix="/services", tags=["services"])
 
 
 def _model_to_payload(row: ServiceModel) -> dict:
+    dashboard_url = None
+    if row.observability_enabled and OBSERVABILITY_GRAFANA_URL:
+        service_var = quote_plus(row.name)
+        dashboard_url = (
+            f"{OBSERVABILITY_GRAFANA_URL}/d/{OBSERVABILITY_GRAFANA_DASHBOARD_UID}"
+            f"?orgId={OBSERVABILITY_GRAFANA_ORG_ID}&var-service={service_var}&refresh=10s"
+        )
     return {
         "name": row.name,
         "repo_url": row.repo_url,
@@ -20,6 +33,8 @@ def _model_to_payload(row: ServiceModel) -> dict:
         "tier": row.tier,
         "environments": row.environments or [],
         "tenant": row.tenant,
+        "observability_enabled": row.observability_enabled,
+        "observability_dashboard_url": dashboard_url,
         "provision_status": row.provision_status,
         "provision_detail": row.provision_detail,
     }
@@ -33,6 +48,7 @@ def _apply_payload(row: ServiceModel, payload: ServiceInput) -> None:
     row.tier = payload.tier
     row.environments = payload.environments
     row.tenant = payload.tenant
+    row.observability_enabled = payload.observability_enabled
 
 
 @router.get("", response_model=List[Service])

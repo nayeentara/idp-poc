@@ -117,3 +117,28 @@ variable "app_deploy_step_function_arn" {
   type    = string
   default = ""
 }
+
+variable "app_observability_grafana_url" {
+  type    = string
+  default = ""
+}
+
+variable "app_observability_grafana_dashboard_uid" {
+  type    = string
+  default = "idp-service-observability"
+}
+
+variable "app_observability_grafana_org_id" {
+  type    = string
+  default = "1"
+}
+
+variable "enable_managed_observability" {
+  type    = bool
+  default = false
+}
+
+variable "enable_managed_grafana" {
+  type    = bool
+  default = false
+}

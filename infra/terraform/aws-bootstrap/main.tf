@@ -1,5 +1,7 @@
 locals {
-  name = var.name_prefix
+  name                = var.name_prefix
+  managed_grafana_url = var.enable_managed_observability && var.enable_managed_grafana ? "https://${aws_grafana_workspace.observability[0].endpoint}" : ""
+  app_grafana_url     = var.app_observability_grafana_url != "" ? var.app_observability_grafana_url : local.managed_grafana_url
 }
 
 module "vpc" {
@@ -112,6 +114,45 @@ resource "aws_cloudwatch_log_group" "deployer" {
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${local.name}-app"
   retention_in_days = 14
+}
+
+resource "aws_prometheus_workspace" "observability" {
+  count = var.enable_managed_observability ? 1 : 0
+  alias = "${local.name}-amp"
+}
+
+resource "aws_iam_role" "grafana_workspace" {
+  count = var.enable_managed_observability && var.enable_managed_grafana ? 1 : 0
+  name  = "${local.name}-grafana-workspace-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "grafana.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "grafana_workspace_prometheus_query" {
+  count      = var.enable_managed_observability && var.enable_managed_grafana ? 1 : 0
+  role       = aws_iam_role.grafana_workspace[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonPrometheusQueryAccess"
+}
+
+resource "aws_grafana_workspace" "observability" {
+  count = var.enable_managed_observability && var.enable_managed_grafana ? 1 : 0
+  name  = "${local.name}-amg"
+
+  account_access_type      = "CURRENT_ACCOUNT"
+  role_arn                 = aws_iam_role.grafana_workspace[0].arn
+  authentication_providers = ["AWS_SSO"]
+  permission_type          = "SERVICE_MANAGED"
+  data_sources             = ["PROMETHEUS"]
 }
 
 resource "aws_iam_role" "ecs_task_execution" {
@@ -391,7 +432,10 @@ resource "aws_ecs_task_definition" "app" {
         { name = "PROVISIONING_CALLBACK_TOKEN", value = var.app_callback_token },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "STEP_FUNCTION_ARN", value = var.app_step_function_arn },
-        { name = "DEPLOY_STEP_FUNCTION_ARN", value = var.app_deploy_step_function_arn }
+        { name = "DEPLOY_STEP_FUNCTION_ARN", value = var.app_deploy_step_function_arn },
+        { name = "OBSERVABILITY_GRAFANA_URL", value = local.app_grafana_url },
+        { name = "OBSERVABILITY_GRAFANA_DASHBOARD_UID", value = var.app_observability_grafana_dashboard_uid },
+        { name = "OBSERVABILITY_GRAFANA_ORG_ID", value = var.app_observability_grafana_org_id }
       ],
       secrets = [
         { name = "DB_URL", valueFrom = aws_secretsmanager_secret.app_db.arn }

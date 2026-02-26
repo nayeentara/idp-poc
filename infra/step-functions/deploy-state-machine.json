@@ -62,6 +62,14 @@
                   "Value.$": "$.environment"
                 },
                 {
+                  "Name": "OBSERVABILITY_ENABLED",
+                  "Value.$": "States.Format('{}', $.service.observability_enabled)"
+                },
+                {
+                  "Name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                  "Value": "http://otel-collector.observability.svc.cluster.local:4317"
+                },
+                {
                   "Name": "SERVICE_NAME",
                   "Value.$": "$.service.name"
                 },

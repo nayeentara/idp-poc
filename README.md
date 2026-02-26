@@ -5,6 +5,7 @@
 - Service catalog CRUD (Postgres-backed) with required `tenant`
 - Tenant-aware provisioning status tracking
 - Self-serve actions: provision env, deploy, view status
+- Per-service observability toggle (`observability_enabled`) with Grafana dashboard link
 - Simple web UI served from the same FastAPI app
 
 ## Docker Compose
@@ -62,6 +63,29 @@ Set `DEPLOY_STEP_FUNCTION_ARN` (or fallback to `STEP_FUNCTION_ARN`) to enable de
 Set `DEPLOYMENT_CALLBACK_TOKEN` and configure your deployment worker to call:
 `POST /services/deployments/callback` with header `X-Callback-Token`.
 Reference template: `infra/step-functions/deploy-state-machine.json`.
+
+## Observability (OTel -> Prometheus -> Grafana)
+
+Local stack:
+
+```bash
+cd infra/observability
+docker compose up -d
+```
+
+Configure IDP API env vars:
+
+```bash
+export OBSERVABILITY_GRAFANA_URL='http://localhost:3000'
+export OBSERVABILITY_GRAFANA_DASHBOARD_UID='idp-service-observability'
+export OBSERVABILITY_GRAFANA_ORG_ID='1'
+```
+
+When creating/updating a service, enable the observability checkbox in UI. Deploy runner then:
+- injects OTel env vars into service Deployment
+- adds Prometheus scrape annotations on the Pod template
+
+Service details page will embed the Grafana dashboard URL for that service when configured.
 
 ## AWS Deploy (ECS + ALB)
 The Terraform stack in `infra/terraform/aws-bootstrap` can create:

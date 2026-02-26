@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import APP_NAME
-from app.db import Base, engine
+from app.db import Base, engine, ensure_runtime_schema
 from app.auth.routes import router as auth_router
 from app.services.routes import router as services_router
 from app.provisioning.routes import router as provisioning_router
@@ -23,6 +23,7 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_runtime_schema()
 
 
 @app.get("/health")

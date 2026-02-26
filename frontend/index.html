@@ -232,6 +232,13 @@
         font-size: 12px;
         color: var(--muted);
       }
+      .obs-frame {
+        width: 100%;
+        min-height: 320px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+      }
     </style>
   </head>
   <body>
@@ -307,6 +314,13 @@
             <button id="detail-delete-btn" class="ghost">Delete</button>
           </div>
           <div class="status" id="detail-status"></div>
+          <div style="margin-top: 18px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 15px;">Service Observability</h3>
+            <div class="meta" id="detail-observability-meta"></div>
+            <div style="margin-top: 10px; display: none;" id="detail-observability-wrap">
+              <iframe id="detail-observability-frame" class="obs-frame" loading="lazy"></iframe>
+            </div>
+          </div>
         </section>
 
         <section class="card" id="service-form-view" style="margin-top: 20px; display: none;">
@@ -356,6 +370,10 @@
               prod
             </label>
           </div>
+          <label style="display: inline-flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; margin-bottom: 12px;">
+            <input id="service-observability" type="checkbox" />
+            Enable observability (OTel + Prometheus + Grafana)
+          </label>
           <button id="save-service-btn">Save</button>
           <button id="clear-form-btn" class="secondary">Clear</button>
           <div class="status" id="save-status"></div>
@@ -387,6 +405,9 @@
       const detailProvisionStatus = document.getElementById("detail-provision-status");
       const detailDeployStatus = document.getElementById("detail-deploy-status");
       const detailDeprovisionStatus = document.getElementById("detail-deprovision-status");
+      const detailObservabilityMeta = document.getElementById("detail-observability-meta");
+      const detailObservabilityWrap = document.getElementById("detail-observability-wrap");
+      const detailObservabilityFrame = document.getElementById("detail-observability-frame");
       let servicesCache = [];
       let selectedService = null;
 
@@ -568,7 +589,8 @@
             owner_team: document.getElementById("service-owner").value.trim(),
             runtime: document.getElementById("service-runtime").value,
             tier: document.getElementById("service-tier").value.trim(),
-            environments: envs
+            environments: envs,
+            observability_enabled: document.getElementById("service-observability").checked
           };
           await api("/services", { method: "POST", body: JSON.stringify(payload) });
           saveStatus.textContent = "Service created.";
@@ -585,6 +607,7 @@
         document.getElementById("service-repo").value = "";
         document.getElementById("service-owner").value = "";
         document.getElementById("service-tier").value = "";
+        document.getElementById("service-observability").checked = false;
         document.querySelectorAll(".env-checkbox").forEach((el) => {
           el.checked = false;
         });
@@ -637,6 +660,7 @@
           <tr><th>Runtime</th><td>${service.runtime}</td></tr>
           <tr><th>Tier</th><td>${service.tier}</td></tr>
           <tr><th>Environments</th><td>${service.environments.join(", ") || "none"}</td></tr>
+          <tr><th>Observability</th><td>${service.observability_enabled ? "enabled" : "disabled"}</td></tr>
         `;
         detailProvisionStatus.textContent = "";
         detailDeployStatus.textContent = "";
@@ -645,6 +669,21 @@
           detailProvisionStatus.textContent = `${service.provision_status}${service.provision_detail ? ` — ${service.provision_detail}` : ""}`;
         }
         detailStatus.textContent = "";
+        if (service.observability_enabled) {
+          detailObservabilityMeta.textContent = "Observability is enabled for this service.";
+          if (service.observability_dashboard_url) {
+            detailObservabilityWrap.style.display = "block";
+            detailObservabilityFrame.src = service.observability_dashboard_url;
+          } else {
+            detailObservabilityWrap.style.display = "none";
+            detailObservabilityFrame.src = "";
+            detailObservabilityMeta.textContent = "Observability is enabled, but OBSERVABILITY_GRAFANA_URL is not configured in IDP API.";
+          }
+        } else {
+          detailObservabilityWrap.style.display = "none";
+          detailObservabilityFrame.src = "";
+          detailObservabilityMeta.textContent = "Observability is disabled for this service.";
+        }
         startStatusPolling();
       }
 
