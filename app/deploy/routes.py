@@ -57,6 +57,34 @@ def _start_deploy_execution(service: ServiceModel, deployment: DeploymentModel) 
     return resp.get("executionArn")
 
 
+def _sync_deployment_status_from_step_functions(deployment: DeploymentModel, db: Session) -> None:
+    if deployment.status not in {"queued", "in_progress"}:
+        return
+    if not deployment.execution_arn or not boto3:
+        return
+    try:
+        client = boto3.client("stepfunctions", region_name=AWS_REGION)
+        resp = client.describe_execution(executionArn=deployment.execution_arn)
+    except Exception:
+        return
+
+    sf_status = resp.get("status", "")
+    if sf_status == "RUNNING":
+        return
+    if sf_status == "SUCCEEDED":
+        deployment.status = "succeeded"
+        if deployment.detail in {"Deployment request queued", "Deployment started via Step Functions"}:
+            deployment.detail = "Deployment succeeded"
+    elif sf_status in {"FAILED", "TIMED_OUT", "ABORTED"}:
+        deployment.status = "failed"
+        failure_detail = resp.get("error") or sf_status
+        cause = resp.get("cause")
+        if cause:
+            failure_detail = f"{failure_detail}: {cause}"
+        deployment.detail = f"Deployment failed: {failure_detail}"
+    db.commit()
+
+
 @router.post("/{service_id}/actions/deploy", response_model=DeployResponse)
 def deploy(
     service_id: int,
@@ -126,6 +154,8 @@ def deploy_status(
     )
     if not deployment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No deployment found for service")
+    _sync_deployment_status_from_step_functions(deployment, db)
+    db.refresh(deployment)
     return DeployStatusResponse(
         deployment_id=deployment.id,
         service_id=deployment.service_id,
