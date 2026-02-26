@@ -27,6 +27,16 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Build, tag, and push provisioner image
+        env:
+          ECR_REPO: ${{ secrets.PROVISIONER_ECR_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_REPO:$IMAGE_TAG" infra/provisioner
+          docker push "$ECR_REPO:$IMAGE_TAG"
+          docker tag "$ECR_REPO:$IMAGE_TAG" "$ECR_REPO:latest"
+          docker push "$ECR_REPO:latest"
+
       - name: Build, tag, and push image
         env:
           ECR_REPO: ${{ secrets.APP_ECR_REPO }}
